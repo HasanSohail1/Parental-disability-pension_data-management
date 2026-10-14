@@ -1,35 +1,4 @@
-# WP1: Parental disability pension preparation and checks
-# Hasan Sohail | Prepared 13 October 2026; printing fix 14 October 2026
-#
-# Original workflow, object names and exploratory sections retained.
-# Updated to the definitions agreed during review on 13 October 2026:
-# - Any/full/partial DP event: first date > baseline and <= censoring date.
-# - Censoring: earliest death, first LAJI 5/5A retirement, or 2017-12-31.
-# - Multiple diagnoses: more than one distinct known DRYHMA1 code on the
-#   first date of the corresponding DP type, even within the Other group.
-# - Duplicate identical codes count once; 21/missing/unrecognised codes do
-#   not represent an additional known cause. No known code = Unknown.
-# - Unknown and multiple causes count in all-cause events; their mental,
-#   musculoskeletal and Other indicators are zero at the same first DP date.
-# Required objects already loaded: parent_cohort_1987_master_final,
-# pension_parents_1987.cohort (or pension_parents_1987), and
-# matched_cohort_1987_allexposures_final.
-# Files are saved in the current working directory.
-# The initial LAJI 0/2 section and fixed-count power calculation are historical
-# exploration; final preparation starts in section 2.
-# Reconstructed screenshot setup blocks remain explicitly marked.
-# Marital status is measured in 1987; birth is the time origin.
-# Source extraction, matching and register coverage are not certified here.
-# Validation reported successful in the user's SD Desktop RStudio session
-# on 14 October 2026 after the printing fix below. The user's comparison
-# reported matching parent IDs and values in all shared columns versus the
-# previous final datasets; rebuilt outputs contain additional columns.
-# Confidential register data are not included in this script.
-
-if (!exists("pension_parents_1987.cohort") && exists("pension_parents_1987")) {
-  pension_parents_1987.cohort <- pension_parents_1987
-}
-
+ Parental disability pension preparation and checks
 # -----------------------------------------------------------------------------
 # 1. Exploratory linkage and pension timing (initial LAJI 0/2 definition)
 # -----------------------------------------------------------------------------
@@ -350,7 +319,6 @@ sapply(followup_data[c("dp_any_followup_days", "dp_full_followup_days", "dp_part
   c(missing = sum(is.na(x)), non_positive = sum(x <= 0, na.rm = TRUE))
 })
 
-# RECONSTRUCTED SETUP: definitions absent from the screenshots.
 # Keep every record on the parent's first any-DP date, as in the full/partial
 # code below; count distinct known DRYHMA1 codes on that date.
 any_records <- subset(pension_outcomes, dp_any == 1 & FID %in% parent_outcomes$parent_id)
@@ -361,8 +329,6 @@ first_dp_records <- any_records[
 cause_counts <- tapply(first_dp_records$diagnosis_group, as.character(first_dp_records$FID), function(x) {
   length(unique(x[!is.na(x)]))
 })
-# End reconstructed setup.
-
 conflicting_ids <- names(cause_counts)[cause_counts > 1]
 length(conflicting_ids)
 conflicting_history <- pension_outcomes[
@@ -491,8 +457,6 @@ dim(parent_pension_analysis_1987)
 # 3. Dictionary for the original diagnosis-based analysis copy
 # -----------------------------------------------------------------------------
 
-# RECONSTRUCTED SETUP: dictionary initialisation was not visible. These columns
-# are those used by the dictionary editing code in the screenshots.
 d <- parent_pension_analysis_1987
 dictionary <- data.frame(
   variable = names(d),
@@ -502,7 +466,6 @@ dictionary <- data.frame(
   notes = "",
   stringsAsFactors = FALSE
 )
-# End reconstructed setup.
 
 descriptions <- c(
   parent_id = "Unique parent identifier",
@@ -635,7 +598,6 @@ for (type in names(pension_codes)) {
 }
 dictionary$description[dictionary$description == ""] <- "Definition needs checking"
 stopifnot(nrow(dictionary) == ncol(d), identical(dictionary$variable, names(d)))
-# Dictionary export filename reconstructed: it was below the screenshot edge.
 write.csv(dictionary, "parent_pension_analysis_1987_data_dictionary.csv", row.names = FALSE)
 write.csv(parent_pension_analysis_1987, "parent_pension_analysis_1987.csv", row.names = FALSE, na = "")
 getwd()
@@ -840,12 +802,11 @@ parent_pension_analysis_1987_birth %>% group_by(special_need) %>% summarise(
   rate_per_1000_py = dp_events / person_years * 1000, .groups = "drop"
 )
 
-# RECONSTRUCTED SETUP: first_dp_diagnosis_rows was not defined in the screenshots.
 # Match all DP records on the first any-DP date; use normalised known codes.
 first_dp_diagnosis_rows <- pension_birth_prepared %>% filter(LAJI %in% dp_codes) %>%
   inner_join(first_dp_birth, by = "parent_id") %>% filter(APVM_date == first_dp_date) %>%
   mutate(primary_diagnosis_group = diagnosis_group)
-# End reconstructed setup.
+
 
 first_dp_cause_birth <- first_dp_diagnosis_rows %>% group_by(parent_id) %>% summarise(
   n_primary_groups = n_distinct(primary_diagnosis_group, na.rm = TRUE),
@@ -1141,7 +1102,7 @@ sum(birth$dp_full_event != as.integer(
   !is.na(birth$first_dp_full_date) & birth$first_dp_full_date > birth$followup_start_birth &
     birth$first_dp_full_date <= birth$censor_date_birth
 ), na.rm = TRUE)
-# Reconstructed continuation: partial check was not visible between screenshots.
+
 sum(birth$dp_partial_event != as.integer(
   !is.na(birth$first_dp_partial_date) & birth$first_dp_partial_date > birth$followup_start_birth &
     birth$first_dp_partial_date <= birth$censor_date_birth
